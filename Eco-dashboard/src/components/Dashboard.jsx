@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import Chatbot from "./Chatbot";
 
 const Dashboard = ({ user }) => {
   const [reports, setReports] = useState([]);
@@ -51,9 +52,9 @@ const Dashboard = ({ user }) => {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
@@ -158,9 +159,11 @@ const Dashboard = ({ user }) => {
             <p>
               📍 Location:{" "}
               {report.location
-                ? `${report.location.lat}, ${report.location.lng}`
+                ? report.location.lat + ", " + report.location.lng
                 : "Unknown"}
             </p>
+
+
             {userLocation && (
               <p>
                 📏 Distance:{" "}
@@ -189,6 +192,9 @@ const Dashboard = ({ user }) => {
           </div>
         ))
       )}
+
+
+
     </div>
   );
 };
