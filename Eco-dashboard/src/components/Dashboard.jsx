@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
-import { collection, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 
 const Dashboard = ({ user }) => {
   const [reports, setReports] = useState([]);
@@ -81,34 +81,46 @@ const Dashboard = ({ user }) => {
 
   const claimCleanup = async (reportId, reportPoints, reportDescription) => {
     try {
-      // ✅ Step 1: Update report status in Firestore
+      if (!user) {
+        alert("You must be logged in to claim a cleanup!");
+        return;
+      }
+
       const reportRef = doc(db, "reports", reportId);
       await updateDoc(reportRef, { status: "solved", cleaned_by: user.uid });
 
-      // ✅ Step 2: Update user’s total points & achievements
-      const userRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const newPoints = userData.total_points + reportPoints;
-        const newAchievements = [
-          ...userData.achievements,
-          `Cleaned: ${reportDescription}`,
-        ];
-
-        await updateDoc(userRef, {
-          total_points: newPoints,
-          achievements: newAchievements,
-        });
-      }
-
-      // ✅ Step 3: Remove the report from UI
-      setReports(reports.filter((report) => report.id !== reportId));
-
       alert("Cleanup claimed! 🎉 Points added to your profile.");
+      setReports(reports.filter((report) => report.id !== reportId));
     } catch (error) {
       console.error("Error claiming cleanup:", error);
+    }
+  };
+
+  const vote = async (reportId, voteType) => {
+    try {
+      const reportRef = doc(db, "reports", reportId);
+      const reportSnapshot = await getDocs(collection(db, "reports"));
+      const reportData = reportSnapshot.docs
+        .find((doc) => doc.id === reportId)
+        .data();
+
+      let newVotes = reportData.votes || 0;
+
+      if (voteType === "upvote") {
+        newVotes += 1;
+      } else if (voteType === "downvote") {
+        newVotes = Math.max(0, newVotes - 1);
+      }
+
+      await updateDoc(reportRef, { votes: newVotes });
+
+      setReports((prevReports) =>
+        prevReports.map((report) =>
+          report.id === reportId ? { ...report, votes: newVotes } : report
+        )
+      );
+    } catch (error) {
+      console.error("Error voting:", error);
     }
   };
 
@@ -139,8 +151,16 @@ const Dashboard = ({ user }) => {
             <h3>{report.type}</h3>
             <p>{report.description}</p>
             <p>🌟 Points: {report.points}</p>
-            {report.imageUrl && <img src={report.imageUrl} alt="report" width="300" />}
-            <p>📍 Location: {report.location ? `${report.location.lat}, ${report.location.lng}` : "Unknown"}</p>
+            <p>📢 Votes: {report.votes || 0}</p>
+            {report.imageUrl && (
+              <img src={report.imageUrl} alt="report" width="300" />
+            )}
+            <p>
+              📍 Location:{" "}
+              {report.location
+                ? `${report.location.lat}, ${report.location.lng}`
+                : "Unknown"}
+            </p>
             {userLocation && (
               <p>
                 📏 Distance:{" "}
@@ -154,8 +174,16 @@ const Dashboard = ({ user }) => {
               </p>
             )}
 
+            {/* ✅ Upvote / Downvote Buttons */}
+            <button onClick={() => vote(report.id, "upvote")}>👍 Upvote</button>
+            <button onClick={() => vote(report.id, "downvote")}>👎 Downvote</button>
+
             {/* ✅ Claim Cleanup Button */}
-            <button onClick={() => claimCleanup(report.id, report.points, report.description)}>
+            <button
+              onClick={() =>
+                claimCleanup(report.id, report.points, report.description)
+              }
+            >
               ✅ Claim Cleanup
             </button>
           </div>

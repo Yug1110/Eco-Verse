@@ -195,3 +195,26 @@ async def get_reports():
     reports_ref = db.collection("reports").stream()
     reports = [{"id": doc.id, **doc.to_dict()} for doc in reports_ref]
     return reports
+
+@app.post("/vote")
+def vote(report_id: str, vote_type: str):
+    """Upvote or downvote a report"""
+    report_ref = db.collection("reports").document(report_id)
+    report = report_ref.get()
+
+    if not report.exists:
+        return {"error": "Report not found"}
+
+    report_data = report.to_dict()
+    current_votes = report_data.get("votes", 0)
+
+    if vote_type == "upvote":
+        new_votes = current_votes + 1
+    elif vote_type == "downvote":
+        new_votes = max(0, current_votes - 1)  # Prevent negative votes
+    else:
+        return {"error": "Invalid vote type. Use 'upvote' or 'downvote'"}
+
+    report_ref.update({"votes": new_votes})
+
+    return {"message": "Vote registered", "new_votes": new_votes}
