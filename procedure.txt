@@ -1,0 +1,10 @@
+to run the server
+run:
+uvicorn server:app --host 0.0.0.0 --port 8000
+
+and simultaneously run ngrok http 8000 on pwershell
+copy the url against forwarding
+
+and paste in sandbox
+
+and voila whattsapp bot is running
